@@ -4,7 +4,6 @@
 package akka.stream.javadsl
 
 import java.util.Optional
-
 import akka.{ Done, NotUsed }
 import akka.actor.{ ActorRef, Props }
 import akka.dispatch.ExecutionContexts
@@ -12,10 +11,11 @@ import akka.japi.function
 import akka.stream.impl.StreamLayout
 import akka.stream.{ javadsl, scaladsl, _ }
 import org.reactivestreams.{ Publisher, Subscriber }
-
 import scala.compat.java8.OptionConverters._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
+import java.util.concurrent.CompletionStage
+import scala.compat.java8.FutureConverters.FutureOps
 
 /** Java API */
 object Sink {
@@ -26,8 +26,8 @@ object Sink {
    * function evaluation when the input stream ends, or completed with `Failure`
    * if there is a failure is signaled in the stream.
    */
-  def fold[U, In](zero: U, f: function.Function2[U, In, U]): javadsl.Sink[In, Future[U]] =
-    new Sink(scaladsl.Sink.fold[U, In](zero)(f.apply))
+  def fold[U, In](zero: U, f: function.Function2[U, In, U]): javadsl.Sink[In, CompletionStage[U]] =
+    new Sink(scaladsl.Sink.fold[U, In](zero)(f.apply).toCompletionStage())
 
   /**
    * A `Sink` that will invoke the given function for every received element, giving it its previous
@@ -36,8 +36,8 @@ object Sink {
    * function evaluation when the input stream ends, or completed with `Failure`
    * if there is a failure signaled in the stream.
    */
-  def reduce[In](f: function.Function2[In, In, In]): Sink[In, Future[In]] =
-    new Sink(scaladsl.Sink.reduce[In](f.apply))
+  def reduce[In](f: function.Function2[In, In, In]): Sink[In, CompletionStage[In]] =
+    new Sink(scaladsl.Sink.reduce[In](f.apply).toCompletionStage())
 
   /**
    * Helper to create [[Sink]] from `Subscriber`.
@@ -54,8 +54,8 @@ object Sink {
   /**
    * A `Sink` that will consume the stream and discard the elements.
    */
-  def ignore[T](): Sink[T, Future[Done]] =
-    new Sink(scaladsl.Sink.ignore)
+  def ignore[T](): Sink[T, CompletionStage[Done]] =
+    new Sink(scaladsl.Sink.ignore.toCompletionStage())
 
   /**
    * A `Sink` that materializes into a [[org.reactivestreams.Publisher]].
@@ -77,8 +77,8 @@ object Sink {
    * normal end of the stream, or completed with `Failure` if there is a failure is signaled in
    * the stream..
    */
-  def foreach[T](f: function.Procedure[T]): Sink[T, Future[Done]] =
-    new Sink(scaladsl.Sink.foreach(f.apply))
+  def foreach[T](f: function.Procedure[T]): Sink[T, CompletionStage[Done]] =
+    new Sink(scaladsl.Sink.foreach(f.apply).toCompletionStage())
 
   /**
    * A `Sink` that will invoke the given procedure for each received element in parallel. The sink is materialized
@@ -91,8 +91,8 @@ object Sink {
    * [[akka.stream.Supervision.Resume]] or [[akka.stream.Supervision.Restart]] the
    * element is dropped and the stream continues.
    */
-  def foreachParallel[T](parallel: Int)(f: function.Procedure[T])(ec: ExecutionContext): Sink[T, Future[Done]] =
-    new Sink(scaladsl.Sink.foreachParallel(parallel)(f.apply)(ec))
+  def foreachParallel[T](parallel: Int)(f: function.Procedure[T])(ec: ExecutionContext): Sink[T, CompletionStage[Done]] =
+    new Sink(scaladsl.Sink.foreachParallel(parallel)(f.apply)(ec).toCompletionStage())
 
   /**
    * A `Sink` that when the flow is completed, either through a failure or normal
@@ -109,8 +109,8 @@ object Sink {
    *
    * See also [[headOption]].
    */
-  def head[In](): Sink[In, Future[In]] =
-    new Sink(scaladsl.Sink.head[In])
+  def head[In](): Sink[In, CompletionStage[In]] =
+    new Sink(scaladsl.Sink.head[In].toCompletionStage())
 
   /**
    * A `Sink` that materializes into a `Future` of the optional first value received.
@@ -119,9 +119,9 @@ object Sink {
    *
    * See also [[head]].
    */
-  def headOption[In](): Sink[In, Future[Optional[In]]] =
+  def headOption[In](): Sink[In, CompletionStage[Optional[In]]] =
     new Sink(scaladsl.Sink.headOption[In].mapMaterializedValue(
-      _.map(_.asJava)(ExecutionContexts.sameThreadExecutionContext)))
+      _.map(_.asJava)(ExecutionContexts.sameThreadExecutionContext).toJava))
 
   /**
    * A `Sink` that materializes into a `Future` of the last value received.
@@ -130,8 +130,8 @@ object Sink {
    *
    * See also [[lastOption]].
    */
-  def last[In](): Sink[In, Future[In]] =
-    new Sink(scaladsl.Sink.last[In])
+  def last[In](): Sink[In, CompletionStage[In]] =
+    new Sink(scaladsl.Sink.last[In].toCompletionStage())
 
   /**
    * A `Sink` that materializes into a `Future` of the optional last value received.
@@ -140,9 +140,9 @@ object Sink {
    *
    * See also [[head]].
    */
-  def lastOption[In](): Sink[In, Future[Optional[In]]] =
+  def lastOption[In](): Sink[In, CompletionStage[Optional[In]]] =
     new Sink(scaladsl.Sink.lastOption[In].mapMaterializedValue(
-      _.map(_.asJava)(ExecutionContexts.sameThreadExecutionContext)))
+      _.map(_.asJava)(ExecutionContexts.sameThreadExecutionContext).toJava))
 
   /**
    * A `Sink` that keeps on collecting incoming elements until upstream terminates.
@@ -154,9 +154,9 @@ object Sink {
    *
    * See also [[Flow.limit]], [[Flow.limitWeighted]], [[Flow.take]], [[Flow.takeWithin]], [[Flow.takeWhile]]
    */
-  def seq[In]: Sink[In, Future[java.util.List[In]]] = {
+  def seq[In]: Sink[In, CompletionStage[java.util.List[In]]] = {
     import scala.collection.JavaConverters._
-    new Sink(scaladsl.Sink.seq[In].mapMaterializedValue(fut ⇒ fut.map(sq ⇒ sq.asJava)(ExecutionContexts.sameThreadExecutionContext)))
+    new Sink(scaladsl.Sink.seq[In].mapMaterializedValue(fut ⇒ fut.map(sq ⇒ sq.asJava)(ExecutionContexts.sameThreadExecutionContext).toJava))
   }
 
   /**

@@ -5,7 +5,8 @@
 package akka.http.javadsl
 
 import java.net.InetSocketAddress
-import scala.concurrent.Future
+import java.util.concurrent.CompletionStage
+import scala.compat.java8.FutureConverters._
 
 /**
  * Represents a prospective HTTP server binding.
@@ -22,5 +23,5 @@ class ServerBinding private[http] (delegate: akka.http.scaladsl.Http.ServerBindi
    *
    * The produced [[Future]] is fulfilled when the unbinding has been completed.
    */
-  def unbind(): Future[Unit] = delegate.unbind()
+  def unbind(): CompletionStage[Unit] = delegate.unbind().toJava
 }

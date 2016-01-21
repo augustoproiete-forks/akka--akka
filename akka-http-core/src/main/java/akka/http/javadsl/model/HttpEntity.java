@@ -12,6 +12,7 @@ import akka.util.ByteString;
 import scala.concurrent.Future;
 
 import java.util.OptionalLong;
+import java.util.concurrent.CompletionStage;
 
 /**
  * Represents the entity of an Http message. An entity consists of the content-type of the data
@@ -133,7 +134,7 @@ public interface HttpEntity {
      * Use getDataBytes and stream processing instead if the expected data is big or
      * is likely to take a long time.
      */
-    Future<HttpEntity.Strict> toStrict(long timeoutMillis, Materializer materializer);
+    CompletionStage<HttpEntity.Strict> toStrict(long timeoutMillis, Materializer materializer);
 
     /**
      * The entity type which consists of a predefined fixed ByteString of data.
